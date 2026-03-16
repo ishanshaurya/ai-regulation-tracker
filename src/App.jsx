@@ -4,6 +4,9 @@ import Landing from './pages/Landing'
 import Debugger from './pages/Debugger'
 import Loopholes from './pages/Loopholes'
 import Audit from './pages/Audit'
+import Regulations from './pages/Regulations'
+import DeployCheck from './pages/DeployCheck'
+import StressTest from './pages/StressTest'
 
 function Placeholder({ title, emoji, phase }) {
   return (
@@ -24,10 +27,10 @@ export default function App() {
           <Route path="/dashboard" element={<Placeholder title="Dashboard" emoji="📊" phase="Phase 1" />} />
           <Route path="/debugger" element={<Debugger />} />
           <Route path="/audit" element={<Audit />} />
-          <Route path="/regulations" element={<Placeholder title="Regulation Tracker" emoji="⚖️" phase="Phase 3" />} />
+          <Route path="/regulations" element={<Regulations />} />
           <Route path="/loopholes" element={<Loopholes />} />
-          <Route path="/deploy-check" element={<Placeholder title="Deploy Readiness" emoji="🚀" phase="Phase 4" />} />
-          <Route path="/stress-test" element={<Placeholder title="Stress Tester" emoji="🧪" phase="Phase 4" />} />
+          <Route path="/deploy-check" element={<DeployCheck />} />
+          <Route path="/stress-test" element={<StressTest />} />
         </Route>
         <Route path="/login" element={<Placeholder title="Login" emoji="🔐" phase="Phase 1" />} />
         <Route path="*" element={<div style={{ padding: 60, textAlign: 'center' }}><h1 style={{ color: '#f1f5f9' }}>404</h1></div>} />
