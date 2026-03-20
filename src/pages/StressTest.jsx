@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { FlaskConical, Play, Loader2, AlertTriangle, CheckCircle, Users, Server, Database, Wifi, Zap, Clock } from "lucide-react"
+import { supabase } from "../lib/supabase"
+import { useAuth } from "../hooks/useAuth"
 
 /* ═══════════════════════════════════════════════════════════
    STRESS TESTER — ShipSafe Stage 3
@@ -101,6 +103,7 @@ const STATUS_BORDER = { green: "rgba(34,197,94,0.2)", yellow: "rgba(245,158,11,0
 const STATUS_DOT = { green: "#22c55e", yellow: "#f59e0b", red: "#ef4444" }
 
 export default function StressTest() {
+  const { user } = useAuth()
   const [stack, setStack] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -109,7 +112,17 @@ export default function StressTest() {
     if (!stack.trim() || loading) return
     setLoading(true); setResult(null)
     await new Promise(r => setTimeout(r, 2000 + Math.random() * 1000))
-    setResult(getMockStressTest(stack))
+    const stressResult = getMockStressTest(stack)
+    setResult(stressResult)
+    if (user) {
+      supabase.from("scan_history").insert({
+        user_id: user.id,
+        scan_type: "stress-test",
+        input_snippet: stack.slice(0, 500),
+        result: stressResult,
+        score: null,
+      })
+    }
     setLoading(false)
   }
 

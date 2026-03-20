@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Search, Play, Loader2, AlertTriangle, CheckCircle, ChevronDown, ChevronRight, FileCode, Shield, Zap, TestTube, Lock, PackageCheck, Sparkles } from "lucide-react"
+import { supabase } from "../lib/supabase"
+import { useAuth } from "../hooks/useAuth"
 
 /* ═══════════════════════════════════════════════════════════
    VIBE-CODE AUDIT — ShipSafe's #3 Feature
@@ -221,6 +223,7 @@ function IssueItem({ issue, open, toggle }) {
 }
 
 export default function Audit() {
+  const { user } = useAuth()
   const [code, setCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -237,6 +240,15 @@ export default function Audit() {
     await new Promise(r => setTimeout(r, 1800 + Math.random() * 1000))
     const audit = getMockAudit(code)
     setResult(audit)
+    if (user) {
+      supabase.from("scan_history").insert({
+        user_id: user.id,
+        scan_type: "audit",
+        input_snippet: code.slice(0, 500),
+        result: audit,
+        score: audit.overallScore,
+      })
+    }
     const ae = {}
     audit.issues.forEach(i => { if (i.severity === "critical" || i.severity === "high") ae[i.id] = true })
     setExp(ae)

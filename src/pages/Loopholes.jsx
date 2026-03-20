@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { KeyRound, Search, Loader2, AlertTriangle, ChevronDown, ChevronRight, Globe, Shield, Scale, FileWarning, Lightbulb, TrendingUp } from "lucide-react"
+import { supabase } from "../lib/supabase"
+import { useAuth } from "../hooks/useAuth"
 
 /* ═══════════════════════════════════════════════════════════
    LOOPHOLE FINDER — ShipSafe's #2 Feature
@@ -172,6 +174,7 @@ function GreyAreaCard({ area, open, toggle }) {
 }
 
 export default function Loopholes() {
+  const { user } = useAuth()
   const [description, setDescription] = useState("")
   const [selected, setSelected] = useState([])
   const [loading, setLoading] = useState(false)
@@ -192,6 +195,15 @@ export default function Loopholes() {
     await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000))
     const analysis = getMockAnalysis(description, selected)
     setResult(analysis)
+    if (user) {
+      supabase.from("scan_history").insert({
+        user_id: user.id,
+        scan_type: "loopholes",
+        input_snippet: description.slice(0, 500),
+        result: analysis,
+        score: analysis.riskScore,
+      })
+    }
     const ae = {}
     analysis.greyAreas.forEach((g) => { if (g.risk === "high") ae[g.id] = true })
     setExp(ae)

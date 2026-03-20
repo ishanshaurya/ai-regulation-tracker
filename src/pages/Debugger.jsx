@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Bug, Play, Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronDown, ChevronRight, Copy, Check, Zap, Lock, Code2, Sparkles } from "lucide-react"
+import { supabase } from "../lib/supabase"
+import { useAuth } from "../hooks/useAuth"
 
 const LANGS = ["JavaScript","TypeScript","Python","Java","Go","Rust","C++","PHP","Ruby","SQL"]
 
@@ -128,6 +130,7 @@ function IssueCard({ issue, open, toggle }) {
 }
 
 export default function Debugger() {
+  const { user } = useAuth()
   const [code, setCode] = useState("")
   const [lang, setLang] = useState("JavaScript")
   const [ctx, setCtx] = useState("")
@@ -145,6 +148,15 @@ export default function Debugger() {
     setExp({})
     await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800))
     setResult(MOCK)
+    if (user) {
+      supabase.from("scan_history").insert({
+        user_id: user.id,
+        scan_type: "debugger",
+        input_snippet: code.slice(0, 500),
+        result: MOCK,
+        score: MOCK.healthScore,
+      })
+    }
     const ae = {}
     MOCK.issues.forEach((i) => { if (i.severity === "critical" || i.severity === "high") ae[i.id] = true })
     setExp(ae)

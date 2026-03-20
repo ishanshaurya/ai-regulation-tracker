@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Rocket, Play, Loader2, CheckCircle, AlertTriangle, AlertCircle, X as XIcon, ChevronDown, ChevronRight, Server, Shield, Globe, Key, Database, Wifi } from "lucide-react"
+import { supabase } from "../lib/supabase"
+import { useAuth } from "../hooks/useAuth"
 
 /* ═══════════════════════════════════════════════════════════
    DEPLOY READINESS CHECKER — ShipSafe Stage 3
@@ -118,6 +120,7 @@ const STATUS_ICON = { pass: CheckCircle, fail: AlertCircle, warn: AlertTriangle,
 const STATUS_COLOR = { pass: "#22c55e", fail: "#ef4444", warn: "#f59e0b", info: "#38bdf8" }
 
 export default function DeployCheck() {
+  const { user } = useAuth()
   const [config, setConfig] = useState("")
   const [platform, setPlatform] = useState("vercel")
   const [loading, setLoading] = useState(false)
@@ -132,6 +135,15 @@ export default function DeployCheck() {
     await new Promise(r => setTimeout(r, 1200 + Math.random() * 800))
     const res = getMockDeployCheck(config, platform)
     setResult(res)
+    if (user) {
+      supabase.from("scan_history").insert({
+        user_id: user.id,
+        scan_type: "deploy-check",
+        input_snippet: config.slice(0, 500),
+        result: res,
+        score: res.score,
+      })
+    }
     const ae = {}
     res.checks.forEach(c => { if (c.status === "fail") ae[c.id] = true })
     setExp(ae)
