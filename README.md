@@ -10,6 +10,7 @@ ShipSafe is an AI-powered developer toolkit that catches legal, compliance, and 
 
 ## Features
 
+- **Dashboard** — Live overview of your project's compliance status and risk score at a glance
 - **AI Debugger** — Paste broken code, get a root-cause explanation and fix in seconds
 - **Vibe-Code Audit** — Scans AI-generated code for security holes, bad patterns, and legal red flags
 - **Loophole Detector** — Finds edge cases and logic gaps that slip past tests
