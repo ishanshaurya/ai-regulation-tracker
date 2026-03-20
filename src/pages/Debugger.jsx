@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Bug, Play, Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronDown, ChevronRight, Copy, Check, Zap, Lock, Code2, Sparkles } from "lucide-react"
 import { supabase } from "../lib/supabase"
 import { useAuth } from "../hooks/useAuth"
+import { useIsMobile } from "../hooks/useIsMobile"
 
 const LANGS = ["JavaScript","TypeScript","Python","Java","Go","Rust","C++","PHP","Ruby","SQL"]
 
@@ -131,6 +132,7 @@ function IssueCard({ issue, open, toggle }) {
 
 export default function Debugger() {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [code, setCode] = useState("")
   const [lang, setLang] = useState("JavaScript")
   const [ctx, setCtx] = useState("")
@@ -179,7 +181,7 @@ export default function Debugger() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, alignItems: "start" }}>
         {/* LEFT - Code Input */}
         <div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>

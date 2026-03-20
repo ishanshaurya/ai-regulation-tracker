@@ -2,6 +2,7 @@ import { useState } from "react"
 import { FlaskConical, Play, Loader2, AlertTriangle, CheckCircle, Users, Server, Database, Wifi, Zap, Clock } from "lucide-react"
 import { supabase } from "../lib/supabase"
 import { useAuth } from "../hooks/useAuth"
+import { useIsMobile } from "../hooks/useIsMobile"
 
 /* ═══════════════════════════════════════════════════════════
    STRESS TESTER — ShipSafe Stage 3
@@ -104,6 +105,7 @@ const STATUS_DOT = { green: "#22c55e", yellow: "#f59e0b", red: "#ef4444" }
 
 export default function StressTest() {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [stack, setStack] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -144,7 +146,7 @@ export default function StressTest() {
       </div>
 
       {/* Input */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, alignItems: "start" }}>
         <div>
           <div style={{ background: "rgba(15,22,40,0.6)", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 14, overflow: "hidden", marginBottom: 12 }}>
             <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(26,37,64,0.6)", display: "flex", justifyContent: "space-between" }}>

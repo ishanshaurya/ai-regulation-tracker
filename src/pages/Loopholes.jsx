@@ -2,6 +2,7 @@ import { useState } from "react"
 import { KeyRound, Search, Loader2, AlertTriangle, ChevronDown, ChevronRight, Globe, Shield, Scale, FileWarning, Lightbulb, TrendingUp } from "lucide-react"
 import { supabase } from "../lib/supabase"
 import { useAuth } from "../hooks/useAuth"
+import { useIsMobile } from "../hooks/useIsMobile"
 
 /* ═══════════════════════════════════════════════════════════
    LOOPHOLE FINDER — ShipSafe's #2 Feature
@@ -175,6 +176,7 @@ function GreyAreaCard({ area, open, toggle }) {
 
 export default function Loopholes() {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [description, setDescription] = useState("")
   const [selected, setSelected] = useState([])
   const [loading, setLoading] = useState(false)
@@ -224,7 +226,7 @@ export default function Loopholes() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, alignItems: "start" }}>
         {/* LEFT — Input */}
         <div>
           {/* Quick templates */}

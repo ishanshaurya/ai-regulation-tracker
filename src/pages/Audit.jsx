@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Search, Play, Loader2, AlertTriangle, CheckCircle, ChevronDown, ChevronRight, FileCode, Shield, Zap, TestTube, Lock, PackageCheck, Sparkles } from "lucide-react"
 import { supabase } from "../lib/supabase"
 import { useAuth } from "../hooks/useAuth"
+import { useIsMobile } from "../hooks/useIsMobile"
 
 /* ═══════════════════════════════════════════════════════════
    VIBE-CODE AUDIT — ShipSafe's #3 Feature
@@ -224,6 +225,7 @@ function IssueItem({ issue, open, toggle }) {
 
 export default function Audit() {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [code, setCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -271,7 +273,7 @@ export default function Audit() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, alignItems: "start" }}>
         {/* LEFT — Input */}
         <div>
           <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>

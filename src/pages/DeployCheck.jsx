@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Rocket, Play, Loader2, CheckCircle, AlertTriangle, AlertCircle, X as XIcon, ChevronDown, ChevronRight, Server, Shield, Globe, Key, Database, Wifi } from "lucide-react"
 import { supabase } from "../lib/supabase"
 import { useAuth } from "../hooks/useAuth"
+import { useIsMobile } from "../hooks/useIsMobile"
 
 /* ═══════════════════════════════════════════════════════════
    DEPLOY READINESS CHECKER — ShipSafe Stage 3
@@ -121,6 +122,7 @@ const STATUS_COLOR = { pass: "#22c55e", fail: "#ef4444", warn: "#f59e0b", info: 
 
 export default function DeployCheck() {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [config, setConfig] = useState("")
   const [platform, setPlatform] = useState("vercel")
   const [loading, setLoading] = useState(false)
@@ -163,7 +165,7 @@ export default function DeployCheck() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, alignItems: "start" }}>
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             {PLATFORMS.map(p => (
