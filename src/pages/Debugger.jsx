@@ -58,24 +58,6 @@ app.delete('/api/user/:id', (req, res) => {
 app.listen(3000);
 console.log("Server started");`
 
-const MOCK = {
-  healthScore: 22,
-  summary: "Found 9 significant issues including 3 critical SQL injection and hardcoded secret vulnerabilities. Do NOT deploy this code.",
-  stats: { totalIssues: 9, critical: 3, high: 2, medium: 2, low: 2 },
-  issues: [
-    { id: 1, line: 9, severity: "critical", category: "security", title: "Hardcoded database password", description: "Password 'admin123' is hardcoded in source code. Anyone with access to the codebase gets your database credentials. This is one of the most common and dangerous security mistakes.", fix: "Use environment variables:\npassword: process.env.DB_PASSWORD", codeSnippet: "password: 'admin123'" },
-    { id: 2, line: 16, severity: "critical", category: "security", title: "SQL injection vulnerability", description: "User input is concatenated directly into a SQL query string. An attacker could send: ' OR 1=1 -- as the userId to dump your entire users table, or worse, DROP TABLE users.", fix: "Use parameterized queries:\ndb.query('SELECT * FROM users WHERE id = ?', [userId])", codeSnippet: "\"SELECT * FROM users WHERE id = '\" + userId + \"'\"" },
-    { id: 3, line: 24, severity: "critical", category: "security", title: "SQL injection in login query", description: "Username is injected directly into SQL. An attacker can bypass authentication entirely by sending: admin' -- as the username. This gives access to any account without a password.", fix: "Use parameterized queries:\ndb.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, hashedPw])", codeSnippet: "\"SELECT * FROM users WHERE username='\" + username + \"'\"" },
-    { id: 4, line: 26, severity: "high", category: "security", title: "Hardcoded API key sent to clients", description: "A secret key 'sk-secret-api-key-12345' is hardcoded and sent to every user who logs in. Anyone can extract this from network traffic.", fix: "Generate unique JWT tokens per session:\nconst token = jwt.sign({ userId: result[0].id }, process.env.JWT_SECRET)", codeSnippet: "const token = \"sk-secret-api-key-12345\"" },
-    { id: 5, line: 32, severity: "high", category: "bug", title: "No error handling on DELETE query", description: "The delete query has no error callback. If the query fails (e.g., foreign key constraint), the user still gets a success response. Data integrity could silently break.", fix: "Add error handling:\ndb.query(sql, (err) => {\n  if (err) return res.status(500).json({ error: 'Delete failed' })\n  res.json({ success: true })\n})", codeSnippet: "db.query(\"DELETE FROM users WHERE id = \" + req.params.id)" },
-    { id: 6, line: 7, severity: "medium", category: "vibecode", title: "Hardcoded localhost URL", description: "Database host is hardcoded to 'localhost'. This will break in production, staging, or any non-local environment. Classic vibe-code pattern where AI generates code that only works on your machine.", fix: "Use environment variable:\nhost: process.env.DB_HOST || 'localhost'", codeSnippet: "host: 'localhost'" },
-    { id: 7, line: 17, severity: "medium", category: "vibecode", title: "Error parameter ignored in callback", description: "The 'err' parameter is received in the callback but never checked. If the database query fails, the error is silently swallowed and undefined data is sent to the client.", fix: "Check for errors:\ndb.query(query, (err, results) => {\n  if (err) return res.status(500).json({ error: err.message })\n  res.json(results)\n})", codeSnippet: "db.query(query, (err, results) => { res.json(results) })" },
-    { id: 8, line: 34, severity: "low", category: "vibecode", title: "Console.log left in production code", description: "Debug logging should be removed before deployment. Console statements can leak sensitive information and impact performance in production.", fix: "Remove or replace with a proper logging library:\nlogger.info('User deleted', { userId: req.params.id })", codeSnippet: "console.log(\"User deleted\")" },
-    { id: 9, line: 37, severity: "low", category: "vibecode", title: "Console.log at server startup", description: "Another debug statement left in the code. AI-generated code commonly leaves these in.", fix: "Remove or use:\nlogger.info(`Server running on port ${PORT}`)", codeSnippet: "console.log(\"Server started\")" },
-  ],
-  positives: ["Uses const declarations (modern JS)", "RESTful route structure", "Express.js patterns are standard"],
-}
-
 function ScoreRing({ score }) {
   const s = 120, w = 8, r = (s - w) / 2, c = 2 * Math.PI * r
   const off = c - (score / 100) * c
@@ -138,6 +120,7 @@ export default function Debugger() {
   const [ctx, setCtx] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
   const [exp, setExp] = useState({})
   const [copied, setCopied] = useState(false)
 
@@ -147,22 +130,90 @@ export default function Debugger() {
     if (!code.trim() || loading) return
     setLoading(true)
     setResult(null)
+    setError(null)
     setExp({})
-    await new Promise((r) => setTimeout(r, 1200 + Math.random() * 800))
-    setResult(MOCK)
-    if (user) {
-      supabase.from("scan_history").insert({
-        user_id: user.id,
-        scan_type: "debugger",
-        input_snippet: code.slice(0, 500),
-        result: MOCK,
-        score: MOCK.healthScore,
+
+    try {
+      const response = await fetch("/api/claude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language: lang,
+          context: ctx,
+          tool: "debugger",
+        }),
       })
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        const errMsg = typeof errData.error === "string" ? errData.error : `Server error: ${response.status}`
+        throw new Error(errMsg)
+      }
+
+      const data = await response.json()
+
+      // Parse AI response — strip markdown fences if Gemini adds them
+      let content = data.content || ""
+      content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim()
+
+      let parsed
+      try {
+        parsed = JSON.parse(content)
+      } catch {
+        console.error("AI response parse failed:", content.slice(0, 300))
+        throw new Error("AI returned an invalid response. Please try again.")
+      }
+
+      // Validate required fields
+      if (typeof parsed.healthScore !== "number" || !Array.isArray(parsed.issues)) {
+        throw new Error("AI response missing required fields. Please try again.")
+      }
+
+      // Ensure stats exist (generate if model skipped it)
+      if (!parsed.stats) {
+        const issues = parsed.issues
+        parsed.stats = {
+          totalIssues: issues.length,
+          critical: issues.filter((i) => i.severity === "critical").length,
+          high: issues.filter((i) => i.severity === "high").length,
+          medium: issues.filter((i) => i.severity === "medium").length,
+          low: issues.filter((i) => i.severity === "low").length,
+        }
+      }
+
+      if (!Array.isArray(parsed.positives)) parsed.positives = []
+
+      setResult(parsed)
+
+      // Save to Supabase
+      if (user) {
+        try {
+          const { error: dbError } = await supabase.from("scan_history").insert({
+            user_id: user.id,
+            scan_type: "debugger",
+            input_snippet: code.slice(0, 500),
+            result: parsed,
+            score: parsed.healthScore,
+          })
+          if (dbError) console.error("Failed to save scan:", dbError.message)
+        } catch (dbErr) {
+          console.error("Supabase save error:", dbErr)
+        }
+      }
+
+      // Auto-expand critical + high issues
+      const ae = {}
+      parsed.issues.forEach((i) => {
+        if (i.severity === "critical" || i.severity === "high") ae[i.id] = true
+      })
+      setExp(ae)
+    } catch (err) {
+      console.error("Scan failed:", err)
+      setError(err.message || String(err))
+    } finally {
+      setLoading(false)
     }
-    const ae = {}
-    MOCK.issues.forEach((i) => { if (i.severity === "critical" || i.severity === "high") ae[i.id] = true })
-    setExp(ae)
-    setLoading(false)
   }
 
   const lc = code.split("\n").length
@@ -177,7 +228,10 @@ export default function Debugger() {
         </div>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9" }}>AI Code Debugger</h1>
-          <p style={{ fontSize: 11, color: "#475569" }}>Paste code → Find bugs, security holes & vibe-code smells → Get fixes <span style={{ color: "#f59e0b", marginLeft: 8 }}>● Demo Mode</span></p>
+          <p style={{ fontSize: 11, color: "#475569" }}>
+            Paste code → Find bugs, security holes & vibe-code smells → Get fixes
+            <span style={{ color: "#34d399", marginLeft: 8 }}>● Live AI</span>
+          </p>
         </div>
       </div>
 
@@ -189,7 +243,7 @@ export default function Debugger() {
               {LANGS.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
             <input placeholder="Context (optional)" value={ctx} onChange={(e) => setCtx(e.target.value)} style={{ flex: 1, background: "#0f1623", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 8, color: "#e2e8f0", fontSize: 12, padding: "8px 12px", outline: "none" }} />
-            <button onClick={() => { setCode(SAMPLE); setLang("JavaScript"); setCtx("Express.js REST API"); setResult(null) }} style={{ background: "transparent", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 8, color: "#475569", fontSize: 11, padding: "8px 14px", cursor: "pointer" }}>Load Sample</button>
+            <button onClick={() => { setCode(SAMPLE); setLang("JavaScript"); setCtx("Express.js REST API"); setResult(null); setError(null) }} style={{ background: "transparent", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 8, color: "#475569", fontSize: 11, padding: "8px 14px", cursor: "pointer" }}>Load Sample</button>
           </div>
 
           <div style={{ background: "rgba(15,22,40,0.6)", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 14, overflow: "hidden" }}>
@@ -215,8 +269,20 @@ export default function Debugger() {
           </div>
 
           <button onClick={runScan} disabled={loading || !code.trim()} style={{ width: "100%", marginTop: 12, padding: 14, borderRadius: 10, border: "none", background: loading || !code.trim() ? "#1a2540" : "#34d399", color: loading || !code.trim() ? "#334155" : "#0a0e1a", fontSize: 14, fontWeight: 700, cursor: loading || !code.trim() ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            {loading ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Scanning...</> : <><Play size={16} /> Run ShipSafe Scan</>}
+            {loading ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Analyzing with AI...</> : <><Play size={16} /> Run ShipSafe Scan</>}
           </button>
+
+          {/* Error Toast */}
+          {error && (
+            <div style={{ marginTop: 12, padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <AlertCircle size={16} color="#ef4444" style={{ marginTop: 1, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#ef4444", marginBottom: 2 }}>Scan Failed</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.5 }}>{error}</div>
+              </div>
+              <button onClick={() => setError(null)} style={{ marginLeft: "auto", background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+            </div>
+          )}
 
           {result && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginTop: 12 }}>
@@ -232,7 +298,7 @@ export default function Debugger() {
 
         {/* RIGHT - Results */}
         <div>
-          {!loading && !result && (
+          {!loading && !result && !error && (
             <div style={{ background: "rgba(15,22,40,0.6)", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 14, padding: "60px 40px", textAlign: "center", minHeight: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
                 <Bug size={28} color="#ef4444" />
@@ -246,7 +312,7 @@ export default function Debugger() {
             <div style={{ background: "rgba(15,22,40,0.6)", border: "1px solid rgba(56,189,248,0.08)", borderRadius: 14, padding: "80px 40px", textAlign: "center", minHeight: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <Loader2 size={36} color="#34d399" style={{ animation: "spin 1.5s linear infinite", marginBottom: 20 }} />
               <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 6 }}>Scanning {lc} lines of {lang}</h3>
-              <p style={{ fontSize: 12, color: "#475569" }}>Running pattern analysis...</p>
+              <p style={{ fontSize: 12, color: "#475569" }}>AI is analyzing your code...</p>
             </div>
           )}
 
