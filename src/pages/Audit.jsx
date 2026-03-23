@@ -274,7 +274,7 @@ export default function Audit() {
         </div>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f1f5f9" }}>Vibe-Code Audit</h1>
-          <p style={{ fontSize: 11, color: "#475569" }}>Paste your project files → Get a scored report card across 5 categories <span style={{ color: "#f59e0b", marginLeft: 8 }}>● Demo Mode</span></p>
+          <p style={{ fontSize: 11, color: "#475569" }}>Paste your project files → Get a scored report card across 5 categories <span style={{ color: "#34d399", marginLeft: 8 }}>● Live AI</span></p>
         </div>
       </div>
 

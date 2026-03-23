@@ -69,22 +69,14 @@ export default function Dashboard() {
     setLoading(true)
     setFetchError(null)
 
-    // ✅ TASK 2: Wrapped Supabase fetch in try/catch + error check
     const fetchScans = async () => {
       try {
-        const { data, error } = await supabase
-          .from("scan_history")
-          .select("id, scan_type, input_snippet, result, score, created_at")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(10)
-
+        const { data, error } = await getScanHistory(user.id)
         if (error) {
-          console.error("Failed to fetch scans:", error.message)
           setFetchError("Couldn't load scan history")
           setScans([])
         } else {
-          setScans(data ? data.map(mapDbScan) : [])
+          setScans(data.map(mapDbScan))
         }
       } catch (err) {
         console.error("Supabase fetch error:", err)
