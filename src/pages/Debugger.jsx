@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Bug, Play, Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronDown, ChevronRight, Copy, Check, Zap, Lock, Code2, Sparkles } from "lucide-react"
-import { supabase } from "../lib/supabase"
+import { callAI, extractScore } from "../services/scanService"
+import { saveScan } from "../services/supabaseService"
 import { useAuth } from "../hooks/useAuth"
 import { useIsMobile } from "../hooks/useIsMobile"
 
@@ -134,72 +135,21 @@ export default function Debugger() {
     setExp({})
 
     try {
-      const response = await fetch("/api/claude", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          language: lang,
-          context: ctx,
-          tool: "debugger",
-        }),
-      })
+      const { content: parsed, error: aiError } = await callAI("debugger", { code, language: lang, context: ctx })
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
-        const errMsg = typeof errData.error === "string" ? errData.error : `Server error: ${response.status}`
-        throw new Error(errMsg)
+      if (aiError) {
+        setError(aiError)
+        return
       }
-
-      const data = await response.json()
-
-      // Parse AI response — strip markdown fences if Gemini adds them
-      let content = data.content || ""
-      content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim()
-
-      let parsed
-      try {
-        parsed = JSON.parse(content)
-      } catch {
-        console.error("AI response parse failed:", content.slice(0, 300))
-        throw new Error("AI returned an invalid response. Please try again.")
-      }
-
-      // Validate required fields
-      if (typeof parsed.healthScore !== "number" || !Array.isArray(parsed.issues)) {
-        throw new Error("AI response missing required fields. Please try again.")
-      }
-
-      // Ensure stats exist (generate if model skipped it)
-      if (!parsed.stats) {
-        const issues = parsed.issues
-        parsed.stats = {
-          totalIssues: issues.length,
-          critical: issues.filter((i) => i.severity === "critical").length,
-          high: issues.filter((i) => i.severity === "high").length,
-          medium: issues.filter((i) => i.severity === "medium").length,
-          low: issues.filter((i) => i.severity === "low").length,
-        }
-      }
-
-      if (!Array.isArray(parsed.positives)) parsed.positives = []
 
       setResult(parsed)
 
       // Save to Supabase
       if (user) {
-        try {
-          const { error: dbError } = await supabase.from("scan_history").insert({
-            user_id: user.id,
-            scan_type: "debugger",
-            input_snippet: code.slice(0, 500),
-            result: parsed,
-            score: parsed.healthScore,
+        saveScan(user.id, "debugger", code, parsed, extractScore("debugger", parsed))
+          .then(({ error }) => {
+            if (error) console.error("Failed to save scan:", error.message)
           })
-          if (dbError) console.error("Failed to save scan:", dbError.message)
-        } catch (dbErr) {
-          console.error("Supabase save error:", dbErr)
-        }
       }
 
       // Auto-expand critical + high issues
@@ -208,9 +158,6 @@ export default function Debugger() {
         if (i.severity === "critical" || i.severity === "high") ae[i.id] = true
       })
       setExp(ae)
-    } catch (err) {
-      console.error("Scan failed:", err)
-      setError(err.message || String(err))
     } finally {
       setLoading(false)
     }

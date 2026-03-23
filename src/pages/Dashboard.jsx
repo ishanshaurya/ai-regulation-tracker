@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { LayoutDashboard, Bug, Search, Scale, KeyRound, Rocket, FlaskConical, Clock, Shield, Zap, TrendingUp, Activity } from "lucide-react"
-import { supabase } from "../lib/supabase"
+import { getScanHistory } from "../services/supabaseService"
 import { useAuth } from "../hooks/useAuth"
 import { MOCK_SCANS, SCAN_COLORS } from "../data/mockResults"
 
