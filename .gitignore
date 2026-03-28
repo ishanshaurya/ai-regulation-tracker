@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 .env.local
 .env.local.save
+build/
+frontend/build/
+sprint-dashboard/build/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
