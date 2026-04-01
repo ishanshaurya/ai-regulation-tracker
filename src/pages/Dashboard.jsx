@@ -4,6 +4,7 @@ import { LayoutDashboard, Bug, Search, Scale, KeyRound, Rocket, FlaskConical, Cl
 import { getScanHistory } from "../services/supabaseService"
 import { useAuth } from "../hooks/useAuth"
 import { MOCK_SCANS, SCAN_COLORS } from "../data/mockResults"
+import { computeShipReadiness, toolLabel } from "../utils/shipReadiness"
 
 /* ═══════════════════════════════════════════════════════════
    DASHBOARD — ShipSafe Home
@@ -58,14 +59,33 @@ function mapDbScan(row) {
   }
 }
 
+function ScoreRing({ score, size = 110 }) {
+  const w = 9, r = (size - w) / 2, c = 2 * Math.PI * r
+  const off = c - (score / 100) * c
+  const col = score >= 80 ? "#34d399" : score >= 60 ? "#eab308" : score >= 40 ? "#f97316" : "#ef4444"
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={w} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth={w} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s ease" }} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 28, fontWeight: 900, color: col, letterSpacing: "-0.03em" }}>{score}</span>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>/ 100</span>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const [scans, setScans] = useState(null)   // null = not yet loaded
+  const [rawScans, setRawScans] = useState(null)  // unprocessed Supabase rows
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState(null)
 
   useEffect(() => {
-    if (!user) { setScans(null); return }
+    if (!user) { setScans(null); setRawScans(null); return }
     setLoading(true)
     setFetchError(null)
 
@@ -75,13 +95,16 @@ export default function Dashboard() {
         if (error) {
           setFetchError("Couldn't load scan history")
           setScans([])
+          setRawScans([])
         } else {
+          setRawScans(data)
           setScans(data.map(mapDbScan))
         }
       } catch (err) {
         console.error("Supabase fetch error:", err)
         setFetchError("Couldn't connect to database")
         setScans([])
+        setRawScans([])
       } finally {
         setLoading(false)
       }
@@ -92,6 +115,9 @@ export default function Dashboard() {
 
   const displayScans = scans ?? MOCK_SCANS
   const isReal = !!scans
+
+  // Compute readiness from raw Supabase rows (logged in) or MOCK_SCANS (logged out)
+  const readiness = computeShipReadiness(rawScans ?? MOCK_SCANS)
 
   // Stats derived from whichever dataset is active
   const totalScans = displayScans.length
@@ -118,6 +144,116 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── Ship-Readiness Score ─────────────────────────────── */}
+      {(() => {
+        const glowColor = readiness.score === null ? "#475569"
+          : readiness.score >= 80 ? "#34d399"
+          : readiness.score >= 60 ? "#eab308"
+          : readiness.score >= 40 ? "#f97316"
+          : "#ef4444"
+
+        return (
+          <div style={{
+            marginBottom: 20,
+            background: "rgba(10,16,30,0.75)",
+            backdropFilter: "blur(12px)",
+            border: `1px solid ${glowColor}30`,
+            borderRadius: 18,
+            padding: "24px 28px",
+            boxShadow: `0 0 32px ${glowColor}14, inset 0 1px 0 rgba(255,255,255,0.04)`,
+          }}>
+            <div style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em", marginBottom: 16 }}>SHIP-READINESS SCORE</div>
+
+            {readiness.score === null ? (
+              /* ── Empty state ── */
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#94a3b8", marginBottom: 6 }}>No scan data yet</div>
+                  <div style={{ fontSize: 13, color: "#475569" }}>Run your first scan to get a Ship-Readiness Score.</div>
+                </div>
+                <Link to="/debugger" style={{
+                  background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)",
+                  color: "#38bdf8", borderRadius: 10, padding: "10px 20px",
+                  fontSize: 13, fontWeight: 600, textDecoration: "none", flexShrink: 0,
+                  transition: "all 0.2s",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(56,189,248,0.18)" }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(56,189,248,0.1)" }}>
+                  Start Scanning →
+                </Link>
+              </div>
+            ) : (
+              /* ── Scored state ── */
+              <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
+                {/* Left: ring + verdict */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                  <ScoreRing score={readiness.score} size={110} />
+                  <div style={{ fontSize: 13, fontWeight: 800, color: readiness.verdictColor, letterSpacing: "0.1em" }}>
+                    {readiness.verdict}
+                  </div>
+                </div>
+
+                {/* Right: completeness + missing + breakdown */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Completeness bar */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>Tool coverage</span>
+                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
+                        {Math.round(readiness.completeness * 4)}/4 tools scanned
+                      </span>
+                    </div>
+                    <div style={{ height: 5, background: "rgba(255,255,255,0.05)", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%", width: `${readiness.completeness * 100}%`,
+                        background: glowColor, borderRadius: 99,
+                        transition: "width 0.8s ease",
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Missing tools */}
+                  {readiness.missingTools.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                      {readiness.missingTools.map(t => (
+                        <Link key={t} to={`/${t}`} style={{
+                          fontSize: 10, color: "#f59e0b", background: "rgba(245,158,11,0.08)",
+                          border: "1px solid rgba(245,158,11,0.2)", borderRadius: 6,
+                          padding: "3px 9px", textDecoration: "none",
+                        }}>
+                          Run {toolLabel(t)} to improve accuracy
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Per-tool breakdown */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {Object.entries(readiness.breakdown).map(([type, info]) => (
+                      <div key={type}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>{toolLabel(type)}</span>
+                          <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>{info.adjusted}</span>
+                        </div>
+                        <div style={{ height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${info.adjusted}%`,
+                            background: info.adjusted >= 80 ? "#34d399" : info.adjusted >= 60 ? "#eab308" : info.adjusted >= 40 ? "#f97316" : "#ef4444",
+                            borderRadius: 99,
+                            transition: "width 0.8s ease",
+                          }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
