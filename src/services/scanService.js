@@ -289,6 +289,82 @@ export function extractScore(tool, parsed) {
   }
 }
 
+/**
+ * Streaming version of callAI.
+ * Calls the proxy with stream:true and fires onChunk(partialText) as tokens arrive.
+ * Resolves with the full parsed+validated result when done.
+ *
+ * @param {string} tool
+ * @param {object} payload
+ * @param {function} onChunk - called with raw accumulated text as it streams in
+ * @returns {{ content: object|null, error: string|null }}
+ */
+export async function callAIStream(tool, payload, onChunk) {
+  try {
+    const systemPrompt = SYSTEM_PROMPTS[tool]
+    if (!systemPrompt) return { content: null, error: `Unknown tool: "${tool}"` }
+
+    const userPrompt = buildUserPrompt(tool, payload)
+
+    const response = await fetch("/api/claude", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tool, systemPrompt, userPrompt, stream: true }),
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      return { content: null, error: errData.error || `Server error: ${response.status}` }
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let accumulated = ""
+    let buffer = ""
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split("\n")
+      buffer = lines.pop()
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue
+        const jsonStr = line.slice(6).trim()
+        if (!jsonStr || jsonStr === "[DONE]") continue
+        try {
+          const { chunk } = JSON.parse(jsonStr)
+          if (chunk) {
+            accumulated += chunk
+            onChunk?.(accumulated)
+          }
+        } catch {}
+      }
+    }
+
+    // Parse + validate same as callAI
+    let raw = accumulated.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim()
+    let parsed
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      console.error("[scanService] Stream JSON parse failed:", raw.slice(0, 300))
+      return { content: null, error: "AI returned an invalid response. Please try again." }
+    }
+    try {
+      parsed = validate(tool, parsed)
+    } catch (validationErr) {
+      console.error("[scanService] Stream validation failed:", validationErr.message)
+      return { content: null, error: "AI response was incomplete. Please try again." }
+    }
+
+    return { content: parsed, error: null }
+  } catch (err) {
+    console.error("[scanService] callAIStream threw:", err)
+    return { content: null, error: err.message || "Unexpected error. Please try again." }
+  }
+}
+
 // ─────────────────────────────────────────────
 // callAI — THE ONE FUNCTION ALL TOOLS USE
 // ─────────────────────────────────────────────

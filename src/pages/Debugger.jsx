@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Bug, Play, Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronDown, ChevronRight, Copy, Check, Lock, Code2, Sparkles, Github, Star, FileCode, Zap } from "lucide-react"
-import { callAI, extractScore } from "../services/scanService"
+import { callAIStream, extractScore } from "../services/scanService"
 import { saveScan, attachEmbedding } from "../services/supabaseService"
 import { useAuth } from "../hooks/useAuth"
 import { useIsMobile } from "../hooks/useIsMobile"
@@ -124,6 +124,7 @@ export default function Debugger() {
   const [githubInfo, setGithubInfo] = useState(null)
   const [githubError, setGithubError] = useState(null)
   const [similarScans, setSimilarScans] = useState([])
+  const [streamingText, setStreamingText] = useState("")
   // File picker state
   const [fileList, setFileList] = useState(null)     // null = not fetched, [] = fetched
   const [selectedFiles, setSelectedFiles] = useState([]) // paths of checked files
@@ -210,9 +211,14 @@ export default function Debugger() {
 
   const runScan = async () => {
     if (!code.trim()||loading) return
-    setLoading(true); setResult(null); setError(null); setExp({}); setSuggestions([]); setSimilarScans([])
+    setLoading(true); setResult(null); setError(null); setExp({}); setSuggestions([]); setSimilarScans([]); setStreamingText("")
     try {
-      const { content:parsed, error:aiError } = await callAI("debugger", { code, language:lang, context:ctx })
+      const { content: parsed, error: aiError } = await callAIStream(
+        "debugger",
+        { code, language: lang, context: ctx },
+        (accumulated) => setStreamingText(accumulated)
+      )
+      setStreamingText("")
       if (aiError) { setError(aiError); return }
       setResult(parsed)
       setSuggestions(getSuggestions("debugger", parsed))
@@ -259,7 +265,7 @@ export default function Debugger() {
 
   return (
     <div style={{ fontFamily:"'Inter',system-ui,sans-serif" }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes streamPulse{0%,100%{opacity:0.4}50%{opacity:1}}`}</style>
 
       {/* Header */}
       <div style={{ marginBottom:28 }}>
@@ -464,9 +470,19 @@ export default function Debugger() {
 
           {loading && (
             <div style={{ background:"#0a0a0a", border:"1px solid rgba(255,255,255,0.06)", borderRadius:14, padding:"80px 32px", textAlign:"center", minHeight:480, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-              <Loader2 size={32} color="#34d399" style={{ animation:"spin 1.5s linear infinite", marginBottom:18 }}/>
+              <Loader2 size={28} color="#34d399" style={{ animation:"spin 1.5s linear infinite", marginBottom:16 }}/>
               <h3 style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:6 }}>Scanning {lc} lines of {lang}</h3>
-              <p style={{ fontSize:12, color:"rgba(255,255,255,0.3)" }}>AI is analyzing your code...</p>
+              {streamingText ? (
+                <div style={{ width:"100%", maxWidth:420, background:"rgba(52,211,153,0.04)", border:"1px solid rgba(52,211,153,0.1)", borderRadius:8, padding:"10px 14px", textAlign:"left", marginTop:8 }}>
+                  <div style={{ fontSize:9, color:"rgba(52,211,153,0.5)", letterSpacing:"0.1em", marginBottom:6 }}>RECEIVING RESPONSE</div>
+                  <pre style={{ fontSize:10, color:"rgba(255,255,255,0.3)", fontFamily:"monospace", lineHeight:1.6, margin:0, whiteSpace:"pre-wrap", wordBreak:"break-all", maxHeight:160, overflow:"hidden" }}>
+                    {streamingText.slice(-400)}
+                  </pre>
+                  <div style={{ width:"60%", height:1, background:"linear-gradient(90deg,#34d399,transparent)", marginTop:8, animation:"streamPulse 1.5s ease-in-out infinite" }}/>
+                </div>
+              ) : (
+                <p style={{ fontSize:12, color:"rgba(255,255,255,0.3)" }}>Connecting to AI...</p>
+              )}
             </div>
           )}
 
