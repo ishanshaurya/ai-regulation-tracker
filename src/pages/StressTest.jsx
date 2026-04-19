@@ -278,12 +278,12 @@ Provide a JSON response with this structure:
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex items-start gap-4">
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-            <Zap className="w-6 h-6 text-yellow-500" />
+          <div className="bg-[#00ff88]/10 border border-[#00ff88]/30 rounded-lg p-3">
+            <Zap className="w-6 h-6 text-[#00ff88]" />
           </div>
           <div>
             <h1 className="text-4xl font-bold mb-2">Stress Tester</h1>
@@ -294,9 +294,9 @@ Provide a JSON response with this structure:
         </div>
 
         {/* Warning Banner */}
-        <div className="mb-6 bg-yellow-500/5 border border-yellow-500/30 rounded-lg p-4 flex gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-yellow-200">
+        <div className="mb-6 bg-[#00ff88]/5 border border-[#00ff88]/20 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-[#00ff88] flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-[#ccffee]">
             <strong>Real Endpoint Testing:</strong> We'll probe your live deployed URL with simulated concurrent requests.
             Your endpoint will receive actual traffic. Use a staging URL if you prefer not to load-test production.
           </div>
@@ -305,7 +305,7 @@ Provide a JSON response with this structure:
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Input Panel */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 space-y-6 sticky top-8">
+            <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6 space-y-6 sticky top-8">
               <div>
                 <label className="block text-sm font-semibold mb-2">Deployment URL *</label>
                 <input
@@ -314,7 +314,7 @@ Provide a JSON response with this structure:
                   value={deployUrl}
                   onChange={(e) => setDeployUrl(e.target.value)}
                   disabled={isRunning}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 disabled:opacity-50"
+                  className="w-full bg-[#0d0d0d] border border-[#222222] rounded px-3 py-2 text-white placeholder-gray-500 focus:border-[#00ff88] focus:outline-none disabled:opacity-50"
                 />
                 <p className="text-xs text-gray-500 mt-1">Include https://</p>
               </div>
@@ -327,7 +327,7 @@ Provide a JSON response with this structure:
                   value={endpoint}
                   onChange={(e) => setEndpoint(e.target.value)}
                   disabled={isRunning}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 disabled:opacity-50"
+                  className="w-full bg-[#0d0d0d] border border-[#222222] rounded px-3 py-2 text-white placeholder-gray-500 focus:border-[#00ff88] focus:outline-none disabled:opacity-50"
                 />
                 <p className="text-xs text-gray-500 mt-1">e.g., /api/analyze or /api/health</p>
               </div>
@@ -338,7 +338,7 @@ Provide a JSON response with this structure:
                   value={httpMethod}
                   onChange={(e) => setHttpMethod(e.target.value)}
                   disabled={isRunning}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white disabled:opacity-50"
+                  className="w-full bg-[#0d0d0d] border border-[#222222] rounded px-3 py-2 text-white focus:border-[#00ff88] focus:outline-none disabled:opacity-50"
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
@@ -355,7 +355,7 @@ Provide a JSON response with this structure:
                     onChange={(e) => setRequestBody(e.target.value)}
                     disabled={isRunning}
                     rows={4}
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 text-xs disabled:opacity-50"
+                    className="w-full bg-[#0d0d0d] border border-[#222222] rounded px-3 py-2 text-white placeholder-gray-500 text-xs focus:border-[#00ff88] focus:outline-none disabled:opacity-50"
                   />
                 </div>
               )}
@@ -385,14 +385,14 @@ Provide a JSON response with this structure:
                   onChange={(e) => setArchitecture(e.target.value)}
                   disabled={isRunning}
                   rows={4}
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 text-xs disabled:opacity-50"
+                  className="w-full bg-[#0d0d0d] border border-[#222222] rounded px-3 py-2 text-white placeholder-gray-500 text-xs focus:border-[#00ff88] focus:outline-none disabled:opacity-50"
                 />
               </div>
 
               <button
                 onClick={runStressTest}
                 disabled={isRunning}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-700 text-black font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                className="w-full bg-[#00ff88] hover:bg-[#00cc6a] disabled:bg-[#1a1a1a] text-black font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
               >
                 {isRunning ? (
                   <>
@@ -418,19 +418,19 @@ Provide a JSON response with this structure:
           {/* Results Panel */}
           <div className="lg:col-span-2 space-y-6">
             {!results && !isRunning && (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-12 text-center">
+              <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-12 text-center">
                 <Zap className="w-16 h-16 text-gray-700 mx-auto mb-4" />
                 <p className="text-gray-400">Enter your URL and click "Run Stress Test" to begin</p>
               </div>
             )}
 
             {isRunning && (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
-                <Activity className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-spin" />
+              <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-8 text-center">
+                <Activity className="w-12 h-12 text-[#00ff88] mx-auto mb-4 animate-spin" />
                 <p className="text-lg font-semibold mb-2">Running stress test...</p>
-                <div className="w-full bg-gray-800 rounded-full h-2">
+                <div className="w-full bg-[#1a1a1a] rounded-full h-2">
                   <div
-                    className="bg-yellow-500 h-2 rounded-full transition-all"
+                    className="bg-[#00ff88] h-2 rounded-full transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -465,23 +465,23 @@ Provide a JSON response with this structure:
                 </div>
 
                 {/* Latency Chart */}
-                <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4">Latency & Error Rates</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={results.chartData}>
                       <defs>
                         <linearGradient id="colorLatency" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                      <XAxis dataKey="tier" stroke="#666" />
-                      <YAxis stroke="#666" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                      <XAxis dataKey="tier" stroke="#444" />
+                      <YAxis stroke="#444" />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: '#1f2937',
-                          border: '1px solid #374151',
+                          backgroundColor: '#111111',
+                          border: '1px solid #1a1a1a',
                           borderRadius: '8px',
                         }}
                         formatter={(value) => [`${value.toFixed(0)}ms`, 'Latency']}
@@ -490,7 +490,7 @@ Provide a JSON response with this structure:
                       <Area
                         type="monotone"
                         dataKey="avgLatency"
-                        stroke="#eab308"
+                        stroke="#00ff88"
                         fillOpacity={1}
                         fill="url(#colorLatency)"
                         name="Avg Latency"
@@ -500,11 +500,11 @@ Provide a JSON response with this structure:
                 </div>
 
                 {/* Tier Breakdown */}
-                <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4">Per-Tier Breakdown</h3>
                   <div className="space-y-3">
                     {results.tiers.map((tier, idx) => (
-                      <div key={idx} className="bg-gray-800 rounded p-4 flex items-center justify-between">
+                      <div key={idx} className="bg-[#0d0d0d] rounded p-4 flex items-center justify-between">
                         <div>
                           <p className="font-semibold">{tier.tier} concurrent users</p>
                           <p className="text-sm text-gray-400">
@@ -523,9 +523,9 @@ Provide a JSON response with this structure:
 
                 {/* Bottleneck Detection */}
                 {results.bottlenecks.length > 0 && (
-                  <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                  <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-500" />
+                      <AlertCircle className="w-5 h-5 text-[#00ff88]" />
                       Detected Bottlenecks
                     </h3>
                     <div className="space-y-3">
@@ -534,8 +534,8 @@ Provide a JSON response with this structure:
                           key={idx}
                           className={`rounded p-4 border ${
                             bn.severity === 'critical'
-                              ? 'bg-red-500/10 border-red-500/30'
-                              : 'bg-yellow-500/10 border-yellow-500/30'
+                              ? 'bg-[#0d0d0d] border-red-500/30'
+                              : 'bg-[#0d0d0d] border-yellow-500/30'
                           }`}
                         >
                           <p className="font-semibold text-white">{bn.title}</p>
@@ -549,13 +549,13 @@ Provide a JSON response with this structure:
 
                 {/* AI Analysis */}
                 {results.aiAnalysis && (
-                  <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                  <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-6">
                     <h3 className="text-lg font-semibold mb-4">AI Recommendations</h3>
                     <p className="text-gray-300 mb-4">{results.aiAnalysis.summary}</p>
                     {results.aiAnalysis.recommendations.length > 0 && (
                       <div className="space-y-3 mb-4">
                         {results.aiAnalysis.recommendations.map((rec, idx) => (
-                          <div key={idx} className="bg-gray-800 rounded p-3 text-sm">
+                          <div key={idx} className="bg-[#0d0d0d] rounded p-3 text-sm">
                             <p className="font-semibold text-white">
                               [{rec.priority.toUpperCase()}] {rec.action}
                             </p>
@@ -577,9 +577,9 @@ Provide a JSON response with this structure:
 };
 
 const StatCard = ({ icon, label, value }) => (
-  <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+  <div className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-4">
     <div className="flex items-center gap-3 mb-2">
-      <div className="text-yellow-500">{icon}</div>
+      <div className="text-[#00ff88]">{icon}</div>
       <p className="text-sm text-gray-400">{label}</p>
     </div>
     <p className="text-2xl font-bold text-white">{value}</p>
