@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react"
 import { Zap, AlertTriangle, Activity, TrendingUp, ChevronDown } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { callAI } from "../services/scanService"
-import { saveScan } from "../utils/saveScan"
+import { saveScan } from "../services/supabaseService"
 import { useAuth } from "../hooks/useAuth"
 import ReportButton from "../components/ReportButton"
 
